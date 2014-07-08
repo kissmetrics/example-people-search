@@ -1,0 +1,10 @@
+/.bundle
+
+/.env
+/.ruby-version
+/.ruby-gemset
+
+/log/*.log
+
+/cache/*.csv
+/cache/*.json
