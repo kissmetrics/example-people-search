@@ -36,7 +36,7 @@ logger.info("Starting the People Search Report query to %s" % [report_url])
 request = connection.post(report_url, MultiJson.dump(query_params))
 
 case(request.status)
-when 202
+when(202)
   status_url = request.headers.fetch('location')
 
   query_params = {
