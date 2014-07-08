@@ -58,6 +58,9 @@ Once these are in place, you can execute the script with:
 bundle exec bin/people_search
 ```
 
+> You can view a [detailed breakdown in the /bin
+README](https://github.com/kissmetrics/example-people-search/tree/master/bin)
+
 This will kick off the script to execute your specified People Search
 Report. Once the report is finished, you should see a table format on
 the command line. You will also have cached files in:
