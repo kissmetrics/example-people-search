@@ -194,27 +194,7 @@ If successful, you will receive a `200 OK` and the results:
    "total":4396,
    "metadata":{
       "limit":2000,
-      "offset":4000,
-      "columns":[
-         {
-            "displayReturnOption":"Total Times for Date Range",
-            "displayName":"Commented",
-            "type":"event",
-            "returnOption":"total_times"
-         },
-         {
-            "displayReturnOption":"Total Times for Date Range",
-            "displayName":"Tweet",
-            "type":"event",
-            "returnOption":"total_times"
-         },
-         {
-            "displayReturnOption":"Date of Last Time for Date Range",
-            "displayName":"Tweet",
-            "type":"event",
-            "returnOption":"last"
-         }
-      ]
+      "offset":4000
    },
    "columns":[
       {
@@ -255,7 +235,7 @@ If successful, you will receive a `200 OK` and the results:
          0,
          0,
          null
-      ],
+      ]
    ]
 }
 ```
