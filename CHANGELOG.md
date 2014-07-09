@@ -3,7 +3,6 @@
 Bug Fixes:
 
 * Remove the need and use of _webhooks_
-* Remove the need and use of _S3_ for storage.
 
 Features:
 
