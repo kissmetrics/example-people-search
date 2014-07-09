@@ -1,4 +1,4 @@
-## Latest
+# 2014-09-07
 
 Bug Fixes:
 
@@ -7,5 +7,11 @@ Bug Fixes:
 
 Features:
 
-* Added a `links` envelope to the response. We inclue pagination links for `self`, `next`, `prev`, `last`, and `first`.
-* `columns` are now included with extra information and separate from the `rows` themselves.
+* Change Branched Funnel validation
+    * The branched funnel now only accepts a single event per node.
+      Change validation to reflect this change
+* Multi Column Name support
+    * Adds collection based `metadata` and `columns` titles, as well as reformatting `rows` to return in a flattened array.
+* Adds **Pagination** to response.
+    * Payload now has a `links` envelope to traverse results. Links include `self`, `first`, `next`, `prev`, `last`.
+* Adds `return_option` and `display_return_option` to response `columns`
