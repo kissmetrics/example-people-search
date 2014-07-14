@@ -47,7 +47,9 @@ You will need to specify the following:
 
 * `API_KEY`: This is your API Key you receive from KISSmetrics.
 * `API_ENDPOINT`: This is the API endpoint, and will be `https://query.kissmetrics.com` for your usage.
-* `REPORT_GUID`: This is the `guid` of the _People Search_ report you would like to export. You will receive this from KISSmetrics.
+* `REPORT_GUID`: To find your Report GUID, go to
+[your reports page](https://app.kissmetrics.com/reports), and _View
+Source_ or _Inspect Element_ on the People Report you wish to query.
 * `REPORT_START_DATE`: This is the **UNIX Timestamp** of the start date.
 * `REPORT_END_DATE`: This is the **UNIX Timestamp** of the end date.
 * `RESULTS_LIMIT`: You can modify this to change the `limit` in the query itself.
