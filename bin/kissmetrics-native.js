@@ -24,32 +24,29 @@ KissMetrics.prototype._apiRequest = function($url, $data, $method) {
 	// Merge predefined jsonData with user data
 	if ($data) {
 		for (var $i in $data) {
-	   			$requestData[$i] = $data[$i];
+			$requestData[$i] = $data[$i];
 		}
 	}
-	var method = null;
-	if (method == 'GET') {
-		var dataArray = [];
-		for (var i in requestData) {
-			dataArray.push(i + '=' + encodeURIComponent(requestData[i]));
-		}
-		url += '?' + dataArray.join('&');
-
-		method = new Packages.org.apache.commons.httpclient.methods.GetMethod(url);
-		method.addRequestHeader('Content-Type', 'application/json');
-	}
-	else {
-		method = new Packages.org.apache.commons.httpclient.methods.PostMethod(url);
-		method.setRequestBody(JSON.stringify(requestData));
-	}
-
-	var httpClient = new Packages.org.apache.commons.httpclient.HttpClient();
-	var http_status_code = httpClient.executeMethod(method);
-	var http_status_text = method.getStatusText();
-	var http_response = method.getResponseBodyAsString();
-	method.releaseConnection();
 	
-	return method;
+	if ($method == 'GET') {
+		var $dataArray = [];
+		for (var $i in $requestData) {
+			$dataArray.push($i + '=' + encodeURIComponent($requestData[$i]));
+		}
+		$url += '?' + $dataArray.join('&');
+
+		var $xhr = new XMLHttpRequest();
+		$xhr.open('GET', $url, false);
+		$xhr.send();
+	}
+	else { 
+		var $xhr = new XMLHttpRequest();
+		$xhr.open($method || 'POST', $url, false);
+		$xhr.setRequestHeader('Content-Type', 'application/json');
+		$xhr.send(JSON.stringify($requestData));
+	}
+	
+	return $xhr;
 };
 
 /**
@@ -60,7 +57,7 @@ KissMetrics.prototype._apiRequest = function($url, $data, $method) {
  * @param string $reportID
  * @return array<array<mixed>>
  */
-KissMetrics.prototype.getReports = function($startDate,  $endDate, $reportID) {
+KissMetrics.prototype.getReports = function($startDate, $endDate, $reportID) {
 	// Prepare request data
 	var $url = this.apiEndpoint + '/v1/reports/' + $reportID + '/run';
 	var $data = {
@@ -71,15 +68,17 @@ KissMetrics.prototype.getReports = function($startDate,  $endDate, $reportID) {
 		}
 	}
 	// Trigger the generation of our reports
-	var $method = this._apiRequest($url, $data);
-	var $location = $method.getResponseHeader('Location');
+	var $xhr = this._apiRequest($url, $data);
+	var $location = $xhr.getResponseHeader('Location');
 	if (!$location) {
+		alert('Something went wrong on generating reports');
 		return;
 	}
 	// Request the status of the generation process
-	var $statusMethod = this._statusRequest($location);
-	$location = $statusMethod.getResponseHeader('Location');
+	var $statusXhr = this._statusRequest($location);
+	$location = $statusXhr.getResponseHeader('Location');
 	if (!$location) {
+		alert('Something went wrong on requesting the status');
 		return;
 	}
 	// Download and return the report
@@ -96,10 +95,11 @@ KissMetrics.prototype._downloadReports = function($location) {
 	var $rows = [];
 	while ($location) {
 		// Request link list
-		var $method = this._apiRequest($location, {'limit': 1000}, 'GET');
-		var $json = JSON.parse($method.getResponseBodyAsString());
+		var $xhr = this._apiRequest($location, {}, 'GET');
+		var $json = JSON.parse($xhr.responseText);
 		// Check if we got an valid link list
 		if (!$json || !$json.total) {
+			alert('Something went wrong on downloading reports');
 			return $rows;
 		}
 		$rows = $rows.concat($json.rows);
