@@ -29,9 +29,11 @@ query_params = {
   }
 }
 
-report_url = "/v1/reports/%s/run" % [ENV.fetch('REPORT_GUID')]
+report_guid = ENV.fetch('REPORT_GUID')
 
-logger.info("Starting the People Search Report query to %s" % [report_url])
+report_url = "/v1/reports/%s/run" % [report_guid]
+
+logger.info(report_guid) { "Starting the People Search Report query to %s" % [report_url] }
 
 request = connection.post(report_url, MultiJson.dump(query_params))
 
@@ -49,7 +51,7 @@ when(202)
   case(status_request.status)
   when 201
   when 200, 201
-    logger.info("Polling the status from %s" % [status_url])
+    logger.info(report_guid) { "Polling the status from %s" % [status_url] }
     progress_bar = ProgressBar.create(title: 'Results status', starting_at: 0, total: 1.0)
 
     # Poll the status until it's completed
@@ -59,7 +61,7 @@ when(202)
 
       break poll_status_request if poll_status_response['completed'] == true || (poll_status_response.has_key?('error') && !poll_status_response['error'].nil?)
       progress_bar.progress = poll_status_response['progress']
-      logger.info("Progress: %s" % [poll_status_response['progress']])
+      logger.info(report_guid) { "Progress: %s" % [poll_status_response['progress']] }
     end
     progress_bar.finish
 
@@ -67,7 +69,7 @@ when(202)
     when 201
       results_url = next_request.headers.fetch('location')
 
-      logger.info("Retrieving results from %s" % [results_url])
+      logger.info(report_guid) { "Retrieving results from %s" % [results_url] }
 
       results_request = connection.get(results_url, query_params)
 
@@ -84,7 +86,7 @@ when(202)
 
         if next_link
           loop do
-            logger.info("Retrieving paginated set %s" % [next_link['href']])
+            logger.info(report_guid) { "Retrieving paginated set %s" % [next_link['href']] }
 
             results_request  = connection.get(next_link['href'])
             results_response = MultiJson.load(results_request.body)
@@ -125,26 +127,26 @@ when(202)
           :rows     => rows
         }
 
-        logger.info('Writing to output/results.json cache')
+        logger.info(report_guid) { 'Writing to cache/results.json cache' }
         File.open(File.expand_path('../../cache/results.json', __FILE__), 'w+') do |f|
           f.write(MultiJson.dump(final_response_body))
         end
 
-        logger.info('Writing to output/results.csv cache')
+        logger.info(report_guid) { 'Writing to cache/results.csv cache' }
         CSV.open(File.expand_path('../../cache/results.csv', __FILE__), 'w+') do |csv|
           csv << headings
           rows.each { |r| csv << r }
         end
       else
-        logger.error("[Results Request] There was an error (%s)\n%s" % [results_request.status, results_request.inspect])
+        logger.error(report_guid) { "[Results Request] There was an error (%s)\n%s" % [results_request.status, results_request.inspect] }
       end
     else
-      logger.error("[Status Ping Request] There was an error (%s)\n%s" % [next_request.status, next_request.inspect])
+      logger.error(report_guid) { "[Status Ping Request] There was an error (%s)\n%s" % [next_request.status, next_request.inspect] }
     end
   else
-    logger.error("[Initial Status Request] There was an error (%s)\n%s" % [status_request.status, status_request.inspect])
+    logger.error(report_guid) { "[Initial Status Request] There was an error (%s)\n%s" % [status_request.status, status_request.inspect] }
   end
 else
-  logger.error("[Initial Request] There was an error (%s)\n%s" % [request.status, request.inspect])
+  logger.error(report_guid) { "[Initial Request] There was an error (%s)\n%s" % [request.status, request.inspect] }
 end
 
