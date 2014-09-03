@@ -19,11 +19,11 @@ connection = Faraday.new(url: ENV.fetch('API_ENDPOINT')) do |c|
   c.adapter(:typhoeus)
 end
 
-connection.headers['Content-Type'] = 'application/json'
-connection.headers['Accept']       = 'application/json'
+connection.headers['Content-Type']  = 'application/json'
+connection.headers['Accept']        = 'application/json'
+connection.headers['Authorization'] = "Bearer %s" % [ENV.fetch('API_KEY')]
 
 query_params = {
-  :personal_token => ENV.fetch('API_KEY'),
   :report => {
     :start_date => ENV.fetch('REPORT_START_DATE'),
     :end_date   => ENV.fetch('REPORT_END_DATE')
@@ -32,7 +32,7 @@ query_params = {
 
 report_guid = ENV.fetch('REPORT_GUID')
 
-report_url = "/query/v1/reports/%s/run" % [report_guid]
+report_url = "/query/reports/%s/run" % [report_guid]
 
 logger.info(report_guid) { "Starting the People Search Report query to %s" % [report_url] }
 
@@ -43,7 +43,6 @@ when(202)
   status_url = request.headers.fetch('location')
 
   query_params = {
-    :personal_token => ENV.fetch('API_KEY'),
     :limit          => ENV.fetch('RESULTS_LIMIT', 100)
   }
 
