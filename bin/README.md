@@ -38,7 +38,13 @@ connection = Faraday.new(url: ENV.fetch('API_ENDPOINT')) do |c|
 end
 
 # Be sure to set our content type to JSON
-connection.headers['Content-Type'] = 'application/json'
+connection.headers['Content-Type']  = 'application/json'
+
+# Retrieve JSON as the response
+connection.headers['Accept']        = 'application/json'
+
+# Authorization header to make requests
+connection.headers['Authorization'] = "Bearer %s" % [ENV.fetch('API_KEY')]
 ```
 
 ### Initiate the initial query request
@@ -47,7 +53,6 @@ Now that we have a connection setup, we can use this to make the requests we nee
 
 ```ruby
 query_params = {
-  :api_key => ENV.fetch('API_KEY'),
   :report => {
     :start_date => ENV.fetch('REPORT_START_DATE'),
     :end_date   => ENV.fetch('REPORT_END_DATE')
@@ -55,7 +60,7 @@ query_params = {
 }
 
 # Build the initial URL
-report_url = "/v1/reports/%s/run" % [ENV.fetch('REPORT_GUID')]
+report_url = "/query/reports/%s/run" % [ENV.fetch('REPORT_GUID')]
 
 # Make the request
 request = connection.post(report_url, MultiJson.dump(query_params))
@@ -65,7 +70,6 @@ when(202)
   status_url = request.headers.fetch('location')
   
   query_params = {
-    :api_key => ENV.fetch('API_KEY'),
     :limit   => ENV.fetch('RESULTS_LIMIT', 100)
   }
   
