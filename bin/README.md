@@ -11,7 +11,7 @@ As a KISSmetrics customer, I would like to be able to retrieve the details of a 
 
 ### Endpoints
 
-* `https://query.kissmetrics.com` will allow you to execute a saved report
+* `https://api.kissmetrics.com` will allow you to execute a saved report
 
 ### Libraries and Dependencies
 
