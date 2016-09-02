@@ -7,12 +7,13 @@ require 'ruby-progressbar'
 require 'terminal-table'
 require 'logger'
 require 'csv'
-
+require 'byebug'
 require 'dotenv'
 Dotenv.load
 
 logger       = Logger.new(File.expand_path('../../log/development.log', __FILE__))
 requests_log = Logger.new(File.expand_path('../../log/requests.log', __FILE__))
+report_name = ENV.fetch('REPORT_NAME')
 
 connection = Faraday.new(url: ENV.fetch('API_ENDPOINT')) do |c|
   c.response(:logger, requests_log)
@@ -23,45 +24,31 @@ connection.headers['Content-Type']  = 'application/json'
 connection.headers['Accept']        = 'application/json'
 connection.headers['Authorization'] = "Bearer %s" % [ENV.fetch('API_KEY')]
 
-query_params = {
-  :report => {
-    :start_date => ENV.fetch('REPORT_START_DATE'),
-    :end_date   => ENV.fetch('REPORT_END_DATE')
-  }
-}
-
-report_guid = ENV.fetch('REPORT_GUID')
-
-report_url = "/query/reports/%s/run" % [report_guid]
-
-logger.info(report_guid) { "Starting the People Search Report query to %s" % [report_url] }
-
-request = connection.post(report_url, MultiJson.dump(query_params))
+body = ENV.fetch('JSON_BLOB')
+report_url = "/v2/products/%s/reports/people_search" % [ENV.fetch('PRODUCT_ID')]
+request = connection.post(report_url,body)
 
 case(request.status)
 when(202)
   status_url = request.headers.fetch('location')
-
   query_params = {
-    :limit          => ENV.fetch('RESULTS_LIMIT', 100)
+    :limit   => ENV.fetch('RESULTS_LIMIT', 100)
   }
-
   status_request = connection.get(status_url, query_params)
 
   case(status_request.status)
   when 201
   when 200, 201
-    logger.info(report_guid) { "Polling the status from %s" % [status_url] }
+    logger.info("Running") { "Polling the status from %s" % [status_url] }
     progress_bar = ProgressBar.create(title: 'Results status', starting_at: 0, total: 1.0)
 
-    # Poll the status until it's completed
     next_request = loop do
       poll_status_request  = connection.get(status_url, query_params)
-      poll_status_response = MultiJson.load(poll_status_request.body)
 
-      break poll_status_request if poll_status_response['completed'] == true || (poll_status_response.has_key?('error') && !poll_status_response['error'].nil?)
-      progress_bar.progress = poll_status_response['progress']
-      logger.info(report_guid) { "Progress: %s" % [poll_status_response['progress']] }
+      poll_status_response = MultiJson.load(poll_status_request.body)
+      break poll_status_request if poll_status_response['data']['completed'] == true || (poll_status_response.has_key?('error') && !poll_status_response['error'].nil?)
+      progress_bar.progress = poll_status_response['data']['progress']
+      logger.info("Running") { "Progress: %s" % [poll_status_response['data']['progress']] }
     end
     progress_bar.finish
 
@@ -69,7 +56,7 @@ when(202)
     when 201
       results_url = next_request.headers.fetch('location')
 
-      logger.info(report_guid) { "Retrieving results from %s" % [results_url] }
+      logger.info("Running") { "Retrieving results from %s" % [results_url] }
 
       results_request = connection.get(results_url, query_params)
 
@@ -79,14 +66,14 @@ when(202)
 
         results_response = MultiJson.load(results_request.body)
 
-        rows.concat(results_response.fetch('rows', []))
+        rows.concat(results_response.fetch('data', []))
 
         links     = results_response.fetch('links', [])
         next_link = links.select { |r| r['rel'] == 'next' }.first
 
         if next_link
           loop do
-            logger.info(report_guid) { "Retrieving paginated set %s" % [next_link['href']] }
+            logger.info("Running") { "Retrieving paginated set %s" % [next_link['href']] }
 
             results_request  = connection.get(next_link['href'])
             results_response = MultiJson.load(results_request.body)
@@ -114,39 +101,39 @@ when(202)
 
         columns  = results_response.fetch('columns', [])
         headings = columns.map { |r| header_display.call(r) }
-
-        # Output to the console
+         #Output to the console
         table = Terminal::Table.new(title: 'Query Results', headings: headings, rows: rows)
         puts table.to_s
 
         # Write to a final JSON file
         final_response_body = {
-          :total    => results_response.fetch('total', 0),
+          :total    => results_response.fetch('total', 0),  
           :metadata => results_response.fetch('metadata', {}),
           :columns  => columns,
           :rows     => rows
         }
 
-        logger.info(report_guid) { 'Writing to cache/results.json cache' }
-        File.open(File.expand_path('../../cache/results.json', __FILE__), 'w+') do |f|
+        logger.info("Running") { "Writing to cache/#{report_name}.json cache" }
+        File.open(File.expand_path("../../cache/#{report_name}.json", __FILE__), 'w+') do |f|
           f.write(MultiJson.dump(final_response_body))
         end
-
-        logger.info(report_guid) { 'Writing to cache/results.csv cache' }
-        CSV.open(File.expand_path('../../cache/results.csv', __FILE__), 'w+') do |csv|
-          csv << headings
-          rows.each { |r| csv << r }
+        header=["ID","Identity"]
+        logger.info("Running") { "Writing to cache/#{report_name}.csv cache" }
+        CSV.open(File.expand_path("../../cache/#{report_name}.csv", __FILE__), 'w+') do |csv|
+          header.push(headings) if columns.length != 0
+          csv<<header
+          rows.each { |r| csv<<[r["__kmid"],r["identity"],r["columns"]] }
         end
       else
-        logger.error(report_guid) { "[Results Request] There was an error (%s)\n%s" % [results_request.status, results_request.inspect] }
+        logger.error("Running") { "[Results Request] There was an error (%s)\n%s" % [results_request.status, results_request.inspect] }
       end
     else
-      logger.error(report_guid) { "[Status Ping Request] There was an error (%s)\n%s" % [next_request.status, next_request.inspect] }
+      logger.error("Running") { "[Status Ping Request] There was an error (%s)\n%s" % [next_request.status, next_request.inspect] }
     end
   else
-    logger.error(report_guid) { "[Initial Status Request] There was an error (%s)\n%s" % [status_request.status, status_request.inspect] }
+    logger.error("Running") { "[Initial Status Request] There was an error (%s)\n%s" % [status_request.status, status_request.inspect] }
   end
 else
-  logger.error(report_guid) { "[Initial Request] There was an error (%s)\n%s" % [request.status, request.inspect] }
+  logger.error("Running") { "[Initial Request] There was an error (%s)\n%s" % [request.status, request.inspect] }
 end
 
